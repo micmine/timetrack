@@ -1,5 +1,9 @@
-var express = require("express");
-var Validator = require("jsonschema").Validator;
+const express = require("express");
+const Validator = require("jsonschema").Validator;
+const mongoose = require('mongoose');
+
+require("./db/TimeEntry").TimeEntry;
+const TimeEntry = mongoose.model("TimeEntry");
 
 const app = express();
 app.use(express.json());
@@ -10,7 +14,7 @@ function validate(data) {
 		"id": "/Timeentry",
 		"type": "object",
 		"properties": {
-			"name": { "type": "number"},
+			"user": { "type": "number"},
 			"mode": { "type": "string"},
 			"time": { "type": "number"}
 		}
@@ -26,10 +30,19 @@ function validate(data) {
 
 app.post("/", (req, res) => {
 	req.body;
-	console.log(req.body);
-	var validation = validate(req.body);
+	const data = req.body;
+	console.log(data);
+	var validation = validate(data);
 	if (validation == true) {
-		return res.json(validation);
+		const timeEntry = new TimeEntry(data);
+		timeEntry.save().then(() => {
+			res.status(201);
+			res.send("Ok");
+		}).catch((err) => {
+			console.log(err);
+			res.status(409);
+			res.send(err);
+		})
 	} else {
 		return res.json(validation.errors);
 	}

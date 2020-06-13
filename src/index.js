@@ -2,7 +2,8 @@ const express = require("express");
 const Validator = require("jsonschema").Validator;
 const mongoose = require('mongoose');
 
-require("./db/TimeEntry").TimeEntry;
+const Validation = require("./controller/Validation").Validation;
+require("./model/TimeEntry").TimeEntry;
 const TimeEntry = mongoose.model("TimeEntry");
 
 const app = express();
@@ -42,7 +43,7 @@ app.post("/", (req, res) => {
 			console.log(err);
 			res.status(409);
 			res.send(err);
-		})
+		});
 	} else {
 		return res.json(validation.errors);
 	}

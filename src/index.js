@@ -1,7 +1,6 @@
 var compression = require('compression');
 var express = require("express");
 
-var Validator = require("jsonschema").Validator;
 var mongoose = require('mongoose');
 
 require("./model/TimeEntry").TimeEntry;
@@ -14,10 +13,10 @@ app.use(express.json());
 app.use(compression());
 
 app.post("/", (req, res) => {
-	req.body;
 	const data = req.body;
 	console.log(data);
 	var validation = Validation.timeEntry(data);
+
 	if (validation == true) {
 		const timeEntry = new TimeEntry(data);
 		timeEntry.save().then(() => {
@@ -36,10 +35,10 @@ app.post("/", (req, res) => {
 });
 
 app.get("/measure", (req, res) => {
-	req.body;
 	const data = req.body;
-
+	console.log(data);
 	var validation = Validation.measure(data);
+
 	if (validation == true) {
 		const output = {
 			user: data.user,
@@ -64,7 +63,6 @@ app.get("/measure", (req, res) => {
 });
 
 app.post("/measure", (req, res) => {
-	req.body;
 	const data = req.body;
 	console.log(data);
 	var validation = Validation.measure(data);

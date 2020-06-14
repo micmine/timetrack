@@ -1,16 +1,15 @@
-const express = require("express");
-const Validator = require("jsonschema").Validator;
-const { v4: uuid } = require('uuid');
-const mongoose = require('mongoose');
+var compression = require('compression');
+var express = require("express");
+
+var Validator = require("jsonschema").Validator;
+var mongoose = require('mongoose');
 
 require("./model/TimeEntry").TimeEntry;
-const TimeEntry = mongoose.model("TimeEntry");
+var TimeEntry = mongoose.model("TimeEntry");
 
-require("./model/Measure").Measure;
-const Measure = mongoose.model("Measure");
-
-const app = express();
+var app = express();
 app.use(express.json());
+app.use(compression());
 
 function validate_TimeEntry(data) {
 	var v = new Validator();
@@ -20,8 +19,10 @@ function validate_TimeEntry(data) {
 		"properties": {
 			"user": { "type": "number"},
 			"mode": { "type": "string"},
-			"time": { "type": "number"}
-		}
+			"start": { "date": "date" },
+			"end": { "date": "date" },
+		},
+		"required": ["user", "mode", "start", "end"]
 	};
 	var result = v.validate(data, schema);
 
@@ -38,8 +39,10 @@ function validate_Masure(data) {
 		"id": "/Measure",
 		"type": "object",
 		"properties": {
-			"token": { "type": "string"},
-		}
+			"user": { "type": "number" },
+			"mode": { "type": "string" },
+		},
+		"required": ["user", "mode"]
 	};
 	var result = v.validate(data, schema);
 
@@ -60,6 +63,7 @@ app.post("/", (req, res) => {
 		timeEntry.save().then(() => {
 			res.status(201);
 			res.send("Ok");
+			console.log("Create TimeEntry:  " + data);
 		}).catch((err) => {
 			console.log(err);
 			res.status(409);
@@ -71,22 +75,30 @@ app.post("/", (req, res) => {
 });
 
 app.get("/masure", (req, res) => {
-	const token = uuid();
-	const data = {
-		"token": token,
-		"start": new Date()
-	};
+	req.body;
+	const data = req.body;
 
-	const masure = new Measure(data);
-	masure.save().then(() => {
-		res.status(201);
-		res.send(data);
-	}).catch((err) => {
-		console.log(err);
-		res.status(409);
-		res.send(err);
-	});
-
+	var validation = validate_Masure(data);
+	if (validation == true) {
+		const output = {
+			user: data.user,
+			mode: data.mode,
+			start: new Date(),
+			end: null
+		};
+		const timeEntry = new TimeEntry(output);
+		timeEntry.save().then(() => {
+			res.status(201);
+			res.send("Ok");
+			console.log("Create TimeEntry:  " + data);
+		}).catch((err) => {
+			console.log(err);
+			res.status(409);
+			res.send(err);
+		});
+	} else {
+		return res.json(validation.errors);
+	}
 });
 
 app.post("/masure", (req, res) => {
@@ -94,19 +106,18 @@ app.post("/masure", (req, res) => {
 	const data = req.body;
 	console.log(data);
 	var validation = validate_Masure(data);
+
 	if (validation == true) {
-		Measure.findOne({ "token" : data.token }, function (err, masure) {
-			if (err) return handleError(err);
-
-			const start = new Date(masure.start);
-
-			const diff = (start.getTime() - new Date().getTime());
-
-			const data = {
-				"masurement": diff
+		TimeEntry.update({ user: data.user, mode: data.mode, end: null}, { end: new Date() }, (err, response) => {
+			if (response.nModified === 1) {
+				res.status(201);
+				res.send("Updated TimeEntry");
+				console.log("Updated TimeEntry");
+			} else {
+				res.status(409);
+				res.send("Failed");
+				console.log("Failed to Update TimeEntry");
 			}
-
-			res.json(data);
 		});
 	} else {
 		return res.json(validation.errors);
